@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Contracts\OrderServiceInterface;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\AssignDriverRequest;
@@ -9,13 +10,12 @@ use App\Http\Requests\Api\PlaceOrderRequest;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\User;
-use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function __construct(private OrderService $orderService) {}
+    public function __construct(private OrderServiceInterface $orderService) {}
 
     public function place(PlaceOrderRequest $request): JsonResponse
     {
@@ -29,7 +29,7 @@ class OrderController extends Controller
             $request->validated('notes'),
         );
 
-        $order->load('orderItems');
+        $order->load('orderItems.product');
 
         return response()->json($order, 201);
     }
@@ -38,7 +38,7 @@ class OrderController extends Controller
     {
         $orders = $request->user()
             ->orders()
-            ->with('store', 'orderItems')
+            ->with('store', 'orderItems.product')
             ->latest()
             ->get();
 
@@ -60,7 +60,11 @@ class OrderController extends Controller
             'store_id',
             $request->user()->stores()->pluck('id')
         )
-            ->with('customer', 'orderItems', 'driver')
+            ->with([
+                'customer' => fn ($q) => $q->select('id', 'name', 'email', 'phone', 'role', 'is_active', 'created_at', 'updated_at'),
+                'orderItems.product',
+                'driver'   => fn ($q) => $q->select('id', 'name', 'email', 'phone', 'role', 'is_active', 'created_at', 'updated_at'),
+            ])
             ->latest()
             ->get();
 
@@ -70,7 +74,11 @@ class OrderController extends Controller
     public function driverOrders(Request $request): JsonResponse
     {
         $orders = Order::forDriver($request->user()->id)
-            ->with('store', 'orderItems', 'customer')
+            ->with([
+                'store',
+                'orderItems.product',
+                'customer' => fn ($q) => $q->select('id', 'name', 'email', 'phone', 'role', 'is_active', 'created_at', 'updated_at'),
+            ])
             ->latest()
             ->get();
 
@@ -79,6 +87,8 @@ class OrderController extends Controller
 
     public function accept(Request $request, Order $order): JsonResponse
     {
+
+        
         $this->authorize('accept', $order);
 
         $order = $this->orderService->acceptOrder($order);

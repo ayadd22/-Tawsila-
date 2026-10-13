@@ -24,7 +24,7 @@ class StoreController extends Controller
 
     public function show(Store $store): JsonResponse
     {
-        $store->load(['products' => fn ($q) => $q->where('is_available', true)]);
+        $store->load(['products' => fn ($q) => $q->available()]);
 
         return response()->json($store);
     }

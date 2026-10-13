@@ -18,7 +18,7 @@ class ProductController extends Controller
 
     public function indexByStore(Store $store): JsonResponse
     {
-        $products = $store->products()->where('is_available', true)->get();
+        $products = $store->products()->available()->get();
 
         return response()->json($products);
     }

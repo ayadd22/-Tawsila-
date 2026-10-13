@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\OrderServiceInterface;
 use App\Enums\OrderStatus;
 use App\Enums\UserRole;
 use App\Models\Order;
@@ -10,7 +11,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-class OrderService
+class OrderService implements OrderServiceInterface
 {
     public function placeOrder(User $customer, Store $store, string $deliveryAddress, array $items, ?string $notes = null): Order
     {
